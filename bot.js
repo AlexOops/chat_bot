@@ -1,11 +1,11 @@
 import { Telegraf } from 'telegraf';
 import fetch from 'node-fetch';
-import * as dotenv from "dotenv";
+import dotenv from 'dotenv';
 
 dotenv.config();
 
 // Инициализация API OpenAI
-const apiKey = process.env.OPENAI_API_KEY;
+const apiKey = process.env.OPENAI_API_KEYS;
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
 
 const bot = new Telegraf(telegramBotToken);
@@ -50,3 +50,6 @@ bot.on('text', async (ctx) => {
 bot.launch();
 
 console.log('Bot is running...');
+
+
+
