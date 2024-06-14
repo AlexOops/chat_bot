@@ -1,10 +1,15 @@
 {
-  "name": "my-chatgpt-bot",
+  "name": "chatgptfortelegram",
   "version": "1.0.0",
+  "description": "",
   "main": "bot.js",
+  "type": "module",
   "scripts": {
-    "start": "node bot.js"
+    "start": "node bot.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "author": "alexOops",
+  "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.5",
     "node-fetch": "^2.7.0",
@@ -12,4 +17,3 @@
     "telegraf": "^4.16.3"
   }
 }
-
