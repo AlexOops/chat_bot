@@ -32,6 +32,7 @@ bot.on('text', async (ctx) => {
     const userMessage = ctx.message.text;
 
     await ctx.sendChatAction('typing');
+    console.log(`Received message: ${userMessage}`);
 
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -48,9 +49,11 @@ bot.on('text', async (ctx) => {
         });
 
         const data = await response.json();
+        console.log(`OpenAI response: ${JSON.stringify(data)}`);
 
         if (data.choices && data.choices.length > 0) {
             const botReply = data.choices[0].message.content.trim();
+            console.log(`Sending reply: ${botReply}`);
             ctx.reply(botReply);
         } else {
             console.error('Unexpected response format:', data);
@@ -69,10 +72,11 @@ app.use(bot.webhookCallback('/webhook'));
 // Установите вебхук
 bot.telegram.setWebhook(`${baseUrl}/webhook`).then(() => {
     console.log(`Webhook set to ${baseUrl}/webhook`);
+}).catch((error) => {
+    console.error('Error setting webhook:', error);
 });
 
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
