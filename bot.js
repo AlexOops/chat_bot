@@ -4,18 +4,28 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Инициализация API OpenAI
 const apiKey = process.env.OPENAI_API_KEYS;
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
 
+if (!apiKey) {
+    console.error('OPENAI_API_KEYS is not set.');
+    process.exit(1);
+}
+
+if (!telegramBotToken) {
+    console.error('TELEGRAM_BOT_TOKEN is not set.');
+    process.exit(1);
+}
+
 const bot = new Telegraf(telegramBotToken);
 
-// Обработка команды /start
 bot.start((ctx) => ctx.reply('Привет! Я бот ChatGPT. Задай мне любой вопрос.'));
 
-// Обработка текстовых сообщений
 bot.on('text', async (ctx) => {
     const userMessage = ctx.message.text;
+
+    // Отправляем статус "печатает..."
+    await ctx.sendChatAction('typing');
 
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -46,10 +56,6 @@ bot.on('text', async (ctx) => {
     }
 });
 
-// Запуск бота
 bot.launch();
 
 console.log('Bot is running...');
-
-
-
