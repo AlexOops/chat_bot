@@ -1,6 +1,7 @@
 import { Telegraf } from 'telegraf';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
+import express from 'express';
 
 dotenv.config();
 
@@ -24,7 +25,6 @@ bot.start((ctx) => ctx.reply('Привет! Я бот ChatGPT. Задай мне
 bot.on('text', async (ctx) => {
     const userMessage = ctx.message.text;
 
-    // Отправляем статус "печатает..."
     await ctx.sendChatAction('typing');
 
     try {
@@ -56,6 +56,15 @@ bot.on('text', async (ctx) => {
     }
 });
 
-bot.launch();
+const app = express();
+app.use(bot.webhookCallback('/webhook'));
 
-console.log('Bot is running...');
+// Установите вебхук
+bot.telegram.setWebhook(`${process.env.BASE_URL}/webhook`);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
+export default app;
