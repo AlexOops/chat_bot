@@ -7,6 +7,7 @@ dotenv.config();
 
 const apiKey = process.env.OPENAI_API_KEYS;
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
+const baseUrl = process.env.BASE_URL;
 
 if (!apiKey) {
     console.error('OPENAI_API_KEYS is not set.');
@@ -15,6 +16,11 @@ if (!apiKey) {
 
 if (!telegramBotToken) {
     console.error('TELEGRAM_BOT_TOKEN is not set.');
+    process.exit(1);
+}
+
+if (!baseUrl) {
+    console.error('BASE_URL is not set.');
     process.exit(1);
 }
 
@@ -57,12 +63,16 @@ bot.on('text', async (ctx) => {
 });
 
 const app = express();
+app.use(express.json());
 app.use(bot.webhookCallback('/webhook'));
 
 // Установите вебхук
-bot.telegram.setWebhook(`${process.env.BASE_URL}/webhook`);
+bot.telegram.setWebhook(`${baseUrl}/webhook`).then(() => {
+    console.log(`Webhook set to ${baseUrl}/webhook`);
+});
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
