@@ -1,13 +1,11 @@
 import { Telegraf } from 'telegraf';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
-import express from 'express';
 
 dotenv.config();
 
 const apiKey = process.env.OPENAI_API_KEYS;
 const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN;
-const baseUrl = process.env.BASE_URL;
 
 if (!apiKey) {
     console.error('OPENAI_API_KEYS is not set.');
@@ -19,20 +17,23 @@ if (!telegramBotToken) {
     process.exit(1);
 }
 
-if (!baseUrl) {
-    console.error('BASE_URL is not set.');
-    process.exit(1);
-}
-
 const bot = new Telegraf(telegramBotToken);
+let userId = null; // Переменная для хранения ID пользователя
 
-bot.start((ctx) => ctx.reply('Привет! Я бот ChatGPT. Задай мне любой вопрос.'));
+bot.start((ctx) => {
+    userId = ctx.message.from.id; // Сохраняем ID пользователя
+    ctx.reply('Привет! Я бот ChatGPT. Задай мне любой вопрос.');
+});
 
 bot.on('text', async (ctx) => {
     const userMessage = ctx.message.text;
 
+    if (ctx.message.from.id !== userId) {
+        return; // Игнорируем сообщения от других пользователей
+    }
+
     await ctx.sendChatAction('typing');
-    console.log(`Received message: ${userMessage}`);
+    console.log(`Received message from user ${userId}: ${userMessage}`);
 
     try {
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -53,7 +54,7 @@ bot.on('text', async (ctx) => {
 
         if (data.choices && data.choices.length > 0) {
             const botReply = data.choices[0].message.content.trim();
-            console.log(`Sending reply: ${botReply}`);
+            console.log(`Sending reply to user ${userId}: ${botReply}`);
             ctx.reply(botReply);
         } else {
             console.error('Unexpected response format:', data);
@@ -65,20 +66,6 @@ bot.on('text', async (ctx) => {
     }
 });
 
-const app = express();
-app.use(express.json());
-app.use(bot.webhookCallback('/webhook'));
+bot.launch();
 
-// Установите вебхук
-bot.telegram.setWebhook(`${baseUrl}/webhook`).then(() => {
-    console.log(`Webhook set to ${baseUrl}/webhook`);
-}).catch((error) => {
-    console.error('Error setting webhook:', error);
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
-
-export default app;
+console.log('Bot is running...');
