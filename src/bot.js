@@ -16,6 +16,11 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
 bot.use(session());
 
+bot.telegram.setMyCommands([
+    { command: '/start', description: 'Начать заново' },
+    { command: '/new', description: 'Новое сообщение' },
+]);
+
 bot.command('start', async (ctx) => {
     ctx.session = INITIAL_SESSION;
     await ctx.reply('Привет! Я бот ChatGPT. Задай мне любой вопрос.');
