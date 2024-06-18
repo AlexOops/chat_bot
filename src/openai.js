@@ -47,7 +47,7 @@ class OpenAIService {
                 response_format: "text",
             });
 
-            return transcription.text;
+            return transcription;
 
         } catch (e) {
             console.log('Error while transcription:', e.message);
