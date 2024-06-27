@@ -1,10 +1,13 @@
-import {Telegraf, session} from 'telegraf';
-import {message} from 'telegraf/filters';
-import {code} from 'telegraf/format';
-import {ogg} from './oggConvertor.js';
-import {openaiService} from './openai.js';
-import {removeFile} from './utils.js';
+import { Telegraf, session } from 'telegraf';
+import { message } from 'telegraf/filters';
+import { code } from 'telegraf/format';
+import { ogg } from './oggConvertor.js';
+import { openaiService } from './openai.js';
+import { removeFile } from './utils.js';
 import dotenv from 'dotenv';
+import { logUser, logRequest } from './db.js';
+import { handleLogsCommand, handleAddAdminCommand, isAdmin } from './admin.js';
+import { setCommands } from './commands.js';
 
 dotenv.config();
 
@@ -16,19 +19,38 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
 bot.use(session());
 
-bot.telegram.setMyCommands([
-    { command: '/start', description: 'Начать заново' },
-    { command: '/new', description: 'Новое сообщение' },
-]);
-
 bot.command('start', async (ctx) => {
     ctx.session = INITIAL_SESSION;
+    logUser(ctx.message.from.id, ctx.message.from.username);
     await ctx.reply('Привет! Я бот ChatGPT. Задай мне любой вопрос.');
+    await setCommands(bot, ctx.message.from.id);  // Устанавливаем команды
 });
 
 bot.command('new', async (ctx) => {
     ctx.session = INITIAL_SESSION;
     await ctx.reply('Жду вашего текстовало или голосового сообщения!');
+    await setCommands(bot, ctx.message.from.id);  // Устанавливаем команды
+});
+
+bot.command('id', async (ctx) => {
+    const userId = ctx.message.from.id;
+    await ctx.reply(`Ваш Telegram ID: ${userId}`);
+});
+
+// Команда для добавления нового администратора
+bot.command('addadmin', handleAddAdminCommand);
+
+bot.command('logs', async (ctx) => {
+    try {
+        if (isAdmin(ctx.message.from.id)) {
+            await handleLogsCommand(ctx);
+        } else {
+            await ctx.reply('У вас нет доступа к этой команде.');
+        }
+    } catch (e) {
+        console.error(`Error while processing logs command`, e.message);
+        await ctx.reply('Произошла ошибка при обработке команды /logs.');
+    }
 });
 
 bot.on(message('voice'), async (ctx) => {
@@ -49,11 +71,13 @@ bot.on(message('voice'), async (ctx) => {
 
         await ctx.reply(code(`Ваш запрос: ${text}`));
 
-        ctx.session.messages.push({role: openaiService.roles.USER, content: text});
+        ctx.session.messages.push({ role: openaiService.roles.USER, content: text });
+
+        logRequest(ctx.message.from.id, text);  // Логирование запроса
 
         const response = await openaiService.chat(ctx.session.messages);
 
-        ctx.session.messages.push({role: openaiService.roles.ASSISTANT, content: response});
+        ctx.session.messages.push({ role: openaiService.roles.ASSISTANT, content: response });
 
         await ctx.reply(response);
 
@@ -67,13 +91,18 @@ bot.on(message('text'), async (ctx) => {
     ctx.session ??= INITIAL_SESSION;
 
     try {
-        await ctx.reply(code('Сообщение принял. Ожидайте ответа...'));
+        await ctx.reply(code('Сообщение принял. Жду ответ от сервера...'));
 
-        ctx.session.messages.push({role: openaiService.roles.USER, content: ctx.message.text});
+        const userId = String(ctx.message.from.id);
+        const userQuery = ctx.message.text;
+
+        ctx.session.messages.push({ role: openaiService.roles.USER, content: userQuery });
+
+        logRequest(userId, userQuery);  // Логирование запроса
 
         const response = await openaiService.chat(ctx.session.messages);
 
-        ctx.session.messages.push({role: openaiService.roles.ASSISTANT, content: response});
+        ctx.session.messages.push({ role: openaiService.roles.ASSISTANT, content: response });
 
         await ctx.reply(response);
 
